@@ -1,4 +1,4 @@
-/* Riot v3.7.0, @license MIT */
+/* Riot WIP, @license MIT */
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -377,7 +377,9 @@ var commonjsGlobal = typeof window !== 'undefined' ? window : typeof global !== 
 
 
 
-
+function unwrapExports (x) {
+	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
+}
 
 function createCommonjsModule(fn, module) {
 	return module = { exports: {} }, fn(module, module.exports), module.exports;
@@ -1015,6 +1017,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	        };
 	    }
 	    Parser.prototype.throwError = function (messageFormat) {
+	        var arguments$1 = arguments;
+
+	        var values = [];
+	        for (var _i = 1; _i < arguments.length; _i++) {
+	            values[_i - 1] = arguments$1[_i];
+	        }
 	        var args = Array.prototype.slice.call(arguments, 1);
 	        var msg = messageFormat.replace(/%(\d)/g, function (whole, idx) {
 	            assert_1.assert(idx < args.length, 'Message reference must be in range');
@@ -1026,6 +1034,12 @@ return /******/ (function(modules) { // webpackBootstrap
 	        throw this.errorHandler.createError(index, line, column, msg);
 	    };
 	    Parser.prototype.tolerateError = function (messageFormat) {
+	        var arguments$1 = arguments;
+
+	        var values = [];
+	        for (var _i = 1; _i < arguments.length; _i++) {
+	            values[_i - 1] = arguments$1[_i];
+	        }
 	        var args = Array.prototype.slice.call(arguments, 1);
 	        var msg = messageFormat.replace(/%(\d)/g, function (whole, idx) {
 	            assert_1.assert(idx < args.length, 'Message reference must be in range');
@@ -8206,6 +8220,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 })));
 });
 
+unwrapExports(csp_tmpl$1);
 var csp_tmpl_1 = csp_tmpl$1.tmpl;
 var csp_tmpl_2 = csp_tmpl$1.brackets;
 
@@ -8617,7 +8632,7 @@ function updateExpression(expr) {
   if (expr.update) { return expr.update() }
 
   // ...it seems to be a simple expression so we try to calculat its value
-  value = csp_tmpl_1(expr.expr, isToggle ? extend({}, Object.create(this.parent), this) : this);
+  value = csp_tmpl_1(expr.expr, this);
   hasValue = !isBlank(value);
   isObj = isObject(value);
 
@@ -9496,7 +9511,7 @@ function unregister$1(name) {
   __TAG_IMPL[name] = null;
 }
 
-var version$1 = 'v3.7.0';
+var version$1 = 'WIP';
 
 
 var core = Object.freeze({
@@ -9615,15 +9630,19 @@ function Tag$1(impl, conf, innerHTML) {
     item: null
   });
 
+  // don't copy methods if we've opted not to, for performance
+  this.extend = root.hasAttribute('riot-lite-extend') ? Object.assign : extend;
+
   // create a unique id to this tag
   // it could be handy to use it also to improve the virtual dom rendering speed
   defineProperty(this, '_riot_id', ++uid); // base 1 allows test !t._riot_id
   defineProperty(this, 'root', root);
-  extend(this, { opts: opts }, item);
+  this.extend(this, { opts: opts }, item);
   // protect the "tags" and "refs" property from being overridden
   defineProperty(this, 'parent', parent || null);
   defineProperty(this, 'tags', {});
   defineProperty(this, 'refs', {});
+
 
   if (isInline || isLoop && isAnonymous) {
     dom = root;
@@ -9641,7 +9660,7 @@ function Tag$1(impl, conf, innerHTML) {
     var nextOpts = {},
       canTrigger = this.isMounted && !skipAnonymous;
 
-    extend(this, data);
+    this.extend(this, data);
     updateOpts.apply(this, [isLoop, parent, isAnonymous, nextOpts, instAttrs]);
 
     if (
@@ -9654,7 +9673,7 @@ function Tag$1(impl, conf, innerHTML) {
 
     // inherit properties from the parent, but only for isAnonymous tags
     if (isLoop && isAnonymous) { inheritFrom.apply(this, [this.parent, propsInSyncWithParent]); }
-    extend(opts, nextOpts);
+    this.extend(opts, nextOpts);
     if (canTrigger) { this.trigger('update', data); }
     updateAllExpressions.call(this, expressions);
     if (canTrigger) { this.trigger('updated'); }

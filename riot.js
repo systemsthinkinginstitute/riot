@@ -1,4 +1,4 @@
-/* Riot v3.7.0, @license MIT */
+/* Riot WIP, @license MIT */
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -1319,7 +1319,7 @@ function updateExpression(expr) {
   if (expr.update) { return expr.update() }
 
   // ...it seems to be a simple expression so we try to calculat its value
-  value = tmpl(expr.expr, isToggle ? extend({}, Object.create(this.parent), this) : this);
+  value = tmpl(expr.expr, this);
   hasValue = !isBlank(value);
   isObj = isObject(value);
 
@@ -2198,7 +2198,7 @@ function unregister$1(name) {
   __TAG_IMPL[name] = null;
 }
 
-var version$1 = 'v3.7.0';
+var version$1 = 'WIP';
 
 
 var core = Object.freeze({
@@ -2317,15 +2317,19 @@ function Tag$1(impl, conf, innerHTML) {
     item: null
   });
 
+  // don't copy methods if we've opted not to, for performance
+  this.extend = root.hasAttribute('riot-lite-extend') ? Object.assign : extend;
+
   // create a unique id to this tag
   // it could be handy to use it also to improve the virtual dom rendering speed
   defineProperty(this, '_riot_id', ++uid); // base 1 allows test !t._riot_id
   defineProperty(this, 'root', root);
-  extend(this, { opts: opts }, item);
+  this.extend(this, { opts: opts }, item);
   // protect the "tags" and "refs" property from being overridden
   defineProperty(this, 'parent', parent || null);
   defineProperty(this, 'tags', {});
   defineProperty(this, 'refs', {});
+
 
   if (isInline || isLoop && isAnonymous) {
     dom = root;
@@ -2343,7 +2347,7 @@ function Tag$1(impl, conf, innerHTML) {
     var nextOpts = {},
       canTrigger = this.isMounted && !skipAnonymous;
 
-    extend(this, data);
+    this.extend(this, data);
     updateOpts.apply(this, [isLoop, parent, isAnonymous, nextOpts, instAttrs]);
 
     if (
@@ -2356,7 +2360,7 @@ function Tag$1(impl, conf, innerHTML) {
 
     // inherit properties from the parent, but only for isAnonymous tags
     if (isLoop && isAnonymous) { inheritFrom.apply(this, [this.parent, propsInSyncWithParent]); }
-    extend(opts, nextOpts);
+    this.extend(opts, nextOpts);
     if (canTrigger) { this.trigger('update', data); }
     updateAllExpressions.call(this, expressions);
     if (canTrigger) { this.trigger('updated'); }

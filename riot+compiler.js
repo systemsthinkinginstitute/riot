@@ -1,4 +1,4 @@
-/* Riot v3.7.0, @license MIT */
+/* Riot WIP, @license MIT */
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
 	typeof define === 'function' && define.amd ? define(factory) :
@@ -1319,7 +1319,7 @@ function updateExpression(expr) {
   if (expr.update) { return expr.update() }
 
   // ...it seems to be a simple expression so we try to calculat its value
-  value = tmpl(expr.expr, isToggle ? extend({}, Object.create(this.parent), this) : this);
+  value = tmpl(expr.expr, this);
   hasValue = !isBlank(value);
   isObj = isObject(value);
 
@@ -2198,7 +2198,7 @@ function unregister$1(name) {
   __TAG_IMPL[name] = null;
 }
 
-var version$1 = 'v3.7.0';
+var version$1 = 'WIP';
 
 
 var core = Object.freeze({
@@ -2317,15 +2317,19 @@ function Tag$1(impl, conf, innerHTML) {
     item: null
   });
 
+  // don't copy methods if we've opted not to, for performance
+  this.extend = root.hasAttribute('riot-lite-extend') ? Object.assign : extend;
+
   // create a unique id to this tag
   // it could be handy to use it also to improve the virtual dom rendering speed
   defineProperty(this, '_riot_id', ++uid); // base 1 allows test !t._riot_id
   defineProperty(this, 'root', root);
-  extend(this, { opts: opts }, item);
+  this.extend(this, { opts: opts }, item);
   // protect the "tags" and "refs" property from being overridden
   defineProperty(this, 'parent', parent || null);
   defineProperty(this, 'tags', {});
   defineProperty(this, 'refs', {});
+
 
   if (isInline || isLoop && isAnonymous) {
     dom = root;
@@ -2343,7 +2347,7 @@ function Tag$1(impl, conf, innerHTML) {
     var nextOpts = {},
       canTrigger = this.isMounted && !skipAnonymous;
 
-    extend(this, data);
+    this.extend(this, data);
     updateOpts.apply(this, [isLoop, parent, isAnonymous, nextOpts, instAttrs]);
 
     if (
@@ -2356,7 +2360,7 @@ function Tag$1(impl, conf, innerHTML) {
 
     // inherit properties from the parent, but only for isAnonymous tags
     if (isLoop && isAnonymous) { inheritFrom.apply(this, [this.parent, propsInSyncWithParent]); }
-    extend(opts, nextOpts);
+    this.extend(opts, nextOpts);
     if (canTrigger) { this.trigger('update', data); }
     updateAllExpressions.call(this, expressions);
     if (canTrigger) { this.trigger('updated'); }
@@ -2935,7 +2939,7 @@ var riot$2 = Object.freeze({
 
 /**
  * Compiler for riot custom tags
- * @version v3.2.4
+ * @version v3.6.0
  */
 
 // istanbul ignore next
@@ -3061,7 +3065,7 @@ var parsers$1 = (function (win) {
           ]
         },
         opts
-      )).code
+        )).code
     },
     buble: function (js, opts, url) {
       opts = extend({
@@ -3097,7 +3101,7 @@ var parsers$1 = (function (win) {
 var S_SQ_STR = /'[^'\n\r\\]*(?:\\(?:\r\n?|[\S\s])[^'\n\r\\]*)*'/.source;
 
 var S_R_SRC1 = [
-  /\/\*[^*]*\*+(?:[^*\/][^*]*\*+)*\//.source,
+  /\/\*[^*]*\*+(?:[^*/][^*]*\*+)*\//.source,
   '//.*',
   S_SQ_STR,
   S_SQ_STR.replace(/'/g, '"'),
@@ -3134,7 +3138,7 @@ function jsSplitter (code, start) {
   var re2;
 
   var skipRegex = brackets.skipRegex;
-  var offset = start |= 0;
+  var offset = start | 0;
   var result = [[]];
   var stack = [];
   var re = re1;
@@ -3224,7 +3228,7 @@ var HTML_ATTRS = / *([-\w:\xA0-\xFF]+) ?(?:= ?('[^']*'|"[^"]*"|\S+))?/g;
 
 var HTML_COMMS = RegExp(/<!--(?!>)[\S\s]*?-->/.source + '|' + S_LINESTR, 'g');
 
-var HTML_TAGS = /<(-?[A-Za-z][-\w\xA0-\xFF]*)(?:\s+([^"'\/>]*(?:(?:"[^"]*"|'[^']*'|\/[^>])[^'"\/>]*)*)|\s*)(\/?)>/g;
+var HTML_TAGS = /<(-?[A-Za-z][-\w\xA0-\xFF]*)(?:\s+([^"'/>]*(?:(?:"[^"]*"|'[^']*'|\/[^>])[^'"/>]*)*)|\s*)(\/?)>/g;
 
 var HTML_PACK = />[ \t]+<(-?[A-Za-z]|\/[-A-Za-z])/g;
 
@@ -3236,7 +3240,7 @@ var PRE_TAGS = /<pre(?:\s+(?:[^">]*|"[^"]*")*)?>([\S\s]+?)<\/pre\s*>/gi;
 
 var SPEC_TYPES = /^"(?:number|date(?:time)?|time|month|email|color)\b/i;
 
-var IMPORT_STATEMENT = /^\s*import(?!\w)(?:(?:\s|[^\s'"])*)['|"].*\n?/gm;
+var IMPORT_STATEMENT = /^\s*import(?!\w|(\s)?\()(?:(?:\s|[^\s'"])*)['|"].*\n?/gm;
 
 var TRIM_TRAIL = /[ \t]+$/gm;
 
@@ -3252,7 +3256,7 @@ function cleanSource (src) {
     mm,
     re = HTML_COMMS;
 
-  if (~src.indexOf('\r')) {
+  if (src.indexOf('\r') !== 1) {
     src = src.replace(/\r\n?/g, '\n');
   }
 
@@ -3295,7 +3299,7 @@ function parseAttribs (str, pcex) {
         if (RE_HASEXPR.test(v)) {
 
           if (k === 'value') { vexp = 1; }
-          if (~RIOT_ATTRS.indexOf(k)) { k = 'riot-' + k; }
+          if (RIOT_ATTRS.indexOf(k) !== -1) { k = 'riot-' + k; }
         }
 
         list.push(k + '=' + v);
@@ -3371,7 +3375,7 @@ function _compileHTML (html, opts, pcex) {
 
     html = html.trim().replace(/\s+/g, ' ');
 
-    if (p.length) { html = html.replace(/\u0002/g, function () { return p.shift() }); }
+    if (p.length) { html = html.replace(/\u0002/g, function () { return p.shift() }); } // eslint-disable-line
   }
 
   if (opts.compact) { html = html.replace(HTML_PACK, '><$1'); }
@@ -3486,6 +3490,7 @@ var CSS_SELECTOR = RegExp('([{}]|^)[; ]*((?:[^@ ;{}][^{}]*)?[^@ ;{}:] ?)(?={)|' 
 
 function scopedCSS (tag, css) {
   var scope = ':scope';
+  var selectorsBlacklist = ['from', 'to', ':host'];
 
   return css.replace(CSS_SELECTOR, function (m, p1, p2) {
 
@@ -3498,7 +3503,7 @@ function scopedCSS (tag, css) {
         return sel
       }
 
-      if (!s || s === 'from' || s === 'to' || s.slice(-1) === '%') {
+      if (!s || selectorsBlacklist.indexOf(s) > -1 || s.slice(-1) === '%') {
         return sel
       }
 
@@ -3527,7 +3532,8 @@ function _compileCSS (css, tag, type, opts) {
   }
 
   css = css.replace(brackets.R_MLCOMMS, '').replace(/\s+/g, ' ').trim();
-  if (tag) { css = scopedCSS(tag, css); }
+  if (tag && (!opts.parserOpts || opts.parserOpts.prefixCSS))
+    { css = scopedCSS(tag, css); }
 
   return css
 }
@@ -3550,7 +3556,7 @@ var END_TAGS = /\/>\n|^<(?:\/?-?[A-Za-z][-\w\xA0-\xFF]*\s*|-?[A-Za-z][-\w\xA0-\x
 function _q (s, r) {
   if (!s) { return "''" }
   s = SQ + s.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + SQ;
-  return r && ~s.indexOf('\n') ? s.replace(/\n/g, '\\n') : s
+  return r && s.indexOf('\n') !== -1 ? s.replace(/\n/g, '\\n') : s
 }
 
 function mktag (name, html, css, attr, js, imports, opts) {
@@ -3573,7 +3579,7 @@ function splitBlocks (str) {
       k = str.lastIndexOf('<'),
       n = str.length;
 
-    while (~k) {
+    while (k !== -1) {
       m = str.slice(k, n).match(END_TAGS);
       if (m) {
         k += m.index + m[0].length;
@@ -3614,11 +3620,11 @@ function getAttrib (attribs, name) {
 
 function unescapeHTML (str) {
   return str
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/&quot;/g, '"')
-          .replace(/&#039;/g, '\'')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, '\'')
 }
 
 function getParserOptions (attribs) {
@@ -3636,12 +3642,12 @@ function getCode (code, opts, attribs, base) {
   if (src) { return false }
 
   return _compileJS(
-          code,
-          opts,
-          type,
-          extend$1(jsParserOptions, getParserOptions(attribs)),
-          base
-        )
+    code,
+    opts,
+    type,
+    extend$1(jsParserOptions, getParserOptions(attribs)),
+    base
+  )
 }
 
 function cssCode (code, opts, attribs, url, tag) {
@@ -3661,7 +3667,7 @@ function compileTemplate (html, url, lang, opts) {
   return parser(html, opts, url)
 }
 
-var CUST_TAG = RegExp(/^([ \t]*)<(-?[A-Za-z][-\w\xA0-\xFF]*)(?:\s+([^'"\/>]+(?:(?:@|\/[^>])[^'"\/>]*)*)|\s*)?(?:\/>|>[ \t]*\n?([\S\s]*)^\1<\/\2\s*>|>(.*)<\/\2\s*>)/
+var CUST_TAG = RegExp(/^([ \t]*)<(-?[A-Za-z][-\w\xA0-\xFF]*)(?:\s+([^'"/>]+(?:(?:@|\/[^>])[^'"/>]*)*)|\s*)?(?:\/>|>[ \t]*\n?([\S\s]*)^\1<\/\2\s*>|>(.*)<\/\2\s*>)/
     .source.replace('@', S_STRINGS), 'gim');
 var SCRIPTS = /<script(\s+[^>]*)?>\n?([\S\s]*?)<\/script\s*>/gi;
 var STYLES = /<style(\s+[^>]*)?>\n?([\S\s]*?)<\/style\s*>/gi;
@@ -3670,11 +3676,14 @@ function compile$1 (src, opts, url) {
   var
     parts = [],
     included,
+    output = src,
     defaultParserptions = {
 
       template: {},
       js: {},
-      style: {}
+      style: {
+        prefixCSS: true
+      }
     };
 
   if (!opts) { opts = {}; }
@@ -3689,10 +3698,10 @@ function compile$1 (src, opts, url) {
   var _bp = brackets.array(opts.brackets);
 
   if (opts.template) {
-    src = compileTemplate(src, url, opts.template, opts.parserOptions.template);
+    output = compileTemplate(output, url, opts.template, opts.parserOptions.template);
   }
 
-  src = cleanSource(src)
+  output = cleanSource(output)
     .replace(CUST_TAG, function (_, indent, tagName, attribs, body, body2) {
       var
         jscode = '',
@@ -3707,8 +3716,8 @@ function compile$1 (src, opts, url) {
 
       attribs = attribs && included('attribs')
         ? restoreExpr(
-            parseAttribs(
-              splitHtml(attribs, opts, pcex),
+          parseAttribs(
+            splitHtml(attribs, opts, pcex),
             pcex),
           pcex) : '';
 
@@ -3773,10 +3782,10 @@ function compile$1 (src, opts, url) {
 
   if (opts.entities) { return parts }
 
-  return src
+  return output
 }
 
-var version$2 = 'v3.2.4';
+var version$2 = 'v3.6.0';
 
 var compiler = {
   compile: compile$1,
